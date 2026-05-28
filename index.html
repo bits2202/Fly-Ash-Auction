@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book Building — Fly Ash Price Band Calculator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f3;color:#1a1a18;font-size:15px;line-height:1.6;}
+:root{
+  --bg-primary:#ffffff;--bg-secondary:#f1efe8;--bg-warning:#faeeda;--bg-danger:#fcebeb;--bg-success:#eaf3de;--bg-info:#e6f1fb;
+  --text-primary:#1a1a18;--text-secondary:#5f5e5a;--text-tertiary:#888780;--text-warning:#854f0b;--text-danger:#a32d2d;--text-success:#3b6d11;--text-info:#185fa5;
+  --border-tertiary:rgba(26,26,24,0.15);--border-secondary:rgba(26,26,24,0.3);--border-warning:#ef9f27;--border-danger:#e24b4a;--border-success:#639922;--border-info:#378add;
+  --radius-md:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg-primary:#1e1e1c;--bg-secondary:#2c2c2a;--bg-warning:#412402;--bg-danger:#501313;--bg-success:#173404;--bg-info:#042c53;
+    --text-primary:#f1efe8;--text-secondary:#b4b2a9;--text-tertiary:#888780;--text-warning:#fac775;--text-danger:#f7c1c1;--text-success:#c0dd97;--text-info:#b5d4f4;
+    --border-tertiary:rgba(241,239,232,0.15);--border-secondary:rgba(241,239,232,0.3);
+  }
+  body{background:#111110;}
+}
+.page{max-width:980px;margin:0 auto;padding:28px 20px;}
+h1{font-size:20px;font-weight:500;color:var(--text-primary);margin-bottom:4px;}
+.subtitle{font-size:13px;color:var(--text-secondary);margin-bottom:24px;}
+label{display:block;font-size:12px;color:var(--text-secondary);margin-bottom:5px;}
+input[type=number],input[type=text],select{background:var(--bg-primary);border:0.5px solid var(--border-secondary);border-radius:var(--radius-md);padding:7px 10px;font-size:14px;color:var(--text-primary);width:100%;outline:none;font-family:inherit;}
+input:focus,select:focus{border-color:var(--border-info);}
+button{background:var(--bg-primary);border:0.5px solid var(--border-secondary);border-radius:var(--radius-md);padding:7px 14px;font-size:13px;color:var(--text-primary);cursor:pointer;font-family:inherit;}
+button:hover{background:var(--bg-secondary);}
+button.btn-primary{background:var(--text-info);border-color:var(--text-info);color:#fff;}
+button.btn-primary:hover{opacity:.9;}
+button.btn-danger{border-color:var(--border-danger);color:var(--text-danger);}
+button.btn-danger:hover{background:var(--bg-danger);}
+button.btn-magic{border-color:var(--border-info);color:var(--text-info);}
+button.btn-magic:hover{background:var(--bg-info);}
+button.btn-success{border-color:var(--border-success);color:var(--text-success);}
+button.btn-success:hover{background:var(--bg-success);}
+
+/* ── Role picker screen ── */
+#role-screen{min-height:60vh;display:flex;align-items:center;justify-content:center;}
+.role-card{background:var(--bg-primary);border:0.5px solid var(--border-secondary);border-radius:var(--radius-lg);padding:32px 36px;max-width:460px;width:100%;}
+.role-card h2{font-size:17px;font-weight:500;margin-bottom:6px;}
+.role-card p{font-size:13px;color:var(--text-secondary);margin-bottom:22px;}
+.role-btn{display:flex;align-items:center;gap:14px;padding:14px 18px;border:0.5px solid var(--border-secondary);border-radius:var(--radius-md);cursor:pointer;margin-bottom:10px;background:var(--bg-primary);}
+.role-btn:hover{background:var(--bg-secondary);border-color:var(--border-info);}
+.role-icon{font-size:22px;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.role-info h3{font-size:14px;font-weight:500;margin-bottom:2px;}
+.role-info p{font-size:12px;color:var(--text-secondary);margin:0;}
+.field-row{margin-bottom:14px;}
+.hidden{display:none!important;}
+
+/* ── Session bar ── */
+.session-bar{background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;font-size:13px;}
+.session-bar .sid{font-family:monospace;font-size:12px;color:var(--text-secondary);background:var(--bg-primary);border:0.5px solid var(--border-tertiary);border-radius:4px;padding:2px 8px;}
+.dot-live{width:8px;height:8px;border-radius:50%;background:#3b6d11;flex-shrink:0;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+/* ── Params ── */
+.top-params{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem;}
+.param-card{background:var(--bg-secondary);border-radius:var(--radius-md);padding:12px 16px;}
+.sec{font-size:14px;font-weight:500;color:var(--text-primary);margin:1.5rem 0 0.4rem;}
+.hint{font-size:12px;color:var(--text-secondary);margin:0 0 8px;}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:11px;color:var(--text-secondary);margin:6px 0 10px;}
+.legend span{display:flex;align-items:center;gap:5px;}
+.ldot{width:10px;height:10px;border-radius:2px;flex-shrink:0;display:inline-block;}
+
+/* ── Toolbar ── */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px;align-items:center;}
+.toolbar-sep{width:0.5px;height:24px;background:var(--border-tertiary);margin:0 4px;}
+
+/* ── Bid grid ── */
+.grid-wrap{overflow-x:auto;}
+table.bg{border-collapse:collapse;width:100%;table-layout:auto;}
+table.bg th{font-size:11px;font-weight:500;color:var(--text-secondary);padding:6px 4px;text-align:center;border-bottom:0.5px solid var(--border-tertiary);white-space:nowrap;}
+table.bg th.p-th{text-align:left;min-width:70px;}
+table.bg th.g-th{border-bottom:0.5px solid var(--border-secondary);}
+table.bg td{padding:3px 3px;vertical-align:middle;}
+table.bg td.pc{text-align:center;}
+table.bg input.price-in{width:62px;text-align:center;font-size:13px;font-weight:500;padding:4px 3px;}
+table.bg input.actual{width:60px;text-align:center;font-size:12px;padding:3px 2px;}
+table.bg input.w-warn{border-color:var(--border-warning)!important;background:var(--bg-warning);}
+table.bg input:disabled{background:var(--bg-secondary);color:var(--text-secondary);cursor:default;}
+table.bg td.deemed{font-size:12px;text-align:center;width:50px;padding:4px 5px;color:var(--text-secondary);background:var(--bg-secondary);border-radius:4px;}
+table.bg td.deemed.casc{color:var(--text-warning);font-style:italic;background:var(--bg-warning);}
+.rm-btn{background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:16px;padding:2px 4px;line-height:1;}
+.rm-btn:hover{color:var(--text-danger);}
+.b-hdr{display:flex;align-items:center;gap:4px;justify-content:center;}
+.b-rm{background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:13px;padding:0 2px;line-height:1;}
+.b-rm:hover{color:var(--text-danger);}
+.b-name-in{font-size:11px;font-weight:500;text-align:center;width:52px;padding:2px 3px;background:transparent;border:none;border-bottom:0.5px solid var(--border-secondary);color:var(--text-primary);cursor:text;outline:none;}
+.b-name-in:focus{border-bottom-color:var(--border-info);}
+.b-name-in:disabled{cursor:default;border-bottom-color:transparent;}
+.col-mine{background:rgba(56,138,221,0.06);}
+
+/* ── Alerts ── */
+.abox{margin:10px 0 4px;border-radius:var(--radius-md);padding:10px 14px;}
+.abox.warn{border:0.5px solid var(--border-warning);background:var(--bg-warning);}
+.abox .at{font-size:12px;font-weight:500;margin-bottom:5px;color:var(--text-warning);}
+.abox ul{margin:0;padding-left:16px;}
+.abox.warn li{font-size:12px;color:var(--text-warning);line-height:1.7;}
+
+/* ── Results ── */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:1.25rem 0;}
+.metric{background:var(--bg-secondary);border-radius:var(--radius-md);padding:12px 14px;}
+.metric-lbl{font-size:11px;color:var(--text-secondary);margin-bottom:5px;}
+.metric-val{font-size:20px;font-weight:500;color:var(--text-primary);}
+.metric-sub{font-size:11px;color:var(--text-secondary);margin-top:2px;}
+table.res{width:100%;border-collapse:collapse;font-size:13px;}
+table.res th{font-size:11px;font-weight:500;color:var(--text-secondary);padding:7px 8px;border-bottom:0.5px solid var(--border-tertiary);text-align:right;white-space:nowrap;}
+table.res th:first-child{text-align:left;}
+table.res td{padding:7px 8px;border-bottom:0.5px solid var(--border-tertiary);text-align:right;color:var(--text-primary);}
+table.res td:first-child{text-align:left;font-weight:500;}
+tr.r-fin td{background:var(--bg-info);color:var(--text-info);font-weight:500;}
+tr.r-sel td{background:var(--bg-success);color:var(--text-success);}
+tr.r-out td{color:var(--text-tertiary);}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:var(--radius-md);}
+.b-fin{background:var(--bg-info);color:var(--text-info);}
+.b-sel{background:var(--bg-success);color:var(--text-success);}
+.alloc-grid{display:grid;gap:8px;margin-top:8px;}
+.alloc-row{display:flex;align-items:center;gap:10px;font-size:13px;}
+.alloc-name{width:50px;font-weight:500;color:var(--text-primary);}
+.alloc-bar-wrap{flex:1;background:var(--bg-secondary);border-radius:4px;height:10px;overflow:hidden;}
+.alloc-bar{height:10px;border-radius:4px;background:var(--text-info);}
+.alloc-qty{width:90px;text-align:right;color:var(--text-secondary);}
+.alloc-pct{width:44px;text-align:right;color:var(--text-secondary);}
+.divider{border:none;border-top:0.5px solid var(--border-tertiary);margin:1.5rem 0 0;}
+
+/* ── Modals ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:300;}
+.overlay.hidden{display:none;}
+.dialog{background:var(--bg-primary);border-radius:var(--radius-lg);border:0.5px solid var(--border-secondary);padding:24px 28px;max-width:380px;width:92%;}
+.dialog-title{font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:8px;}
+.dialog-msg{font-size:13px;color:var(--text-secondary);margin-bottom:20px;line-height:1.6;}
+.dialog-actions{display:flex;gap:10px;justify-content:flex-end;}
+
+/* ── Toast ── */
+.toast-wrap{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:999;min-width:300px;max-width:460px;pointer-events:none;}
+.toast{background:var(--bg-primary);border:0.5px solid var(--border-danger);border-radius:var(--radius-lg);padding:13px 16px;display:flex;gap:11px;align-items:flex-start;pointer-events:all;box-shadow:0 4px 20px rgba(0,0,0,0.12);}
+.toast.info-toast{border-color:var(--border-info);}
+.toast.success-toast{border-color:var(--border-success);}
+.toast.hidden{display:none;}
+.toast-icon{font-size:16px;flex-shrink:0;margin-top:1px;line-height:1;}
+.toast-err .toast-icon{color:var(--text-danger);}
+.toast-info .toast-icon{color:var(--text-info);}
+.toast-ok .toast-icon{color:var(--text-success);}
+.toast-body{flex:1;}
+.toast-title{font-size:13px;font-weight:500;margin-bottom:2px;}
+.toast-err .toast-title{color:var(--text-danger);}
+.toast-info .toast-title{color:var(--text-info);}
+.toast-ok .toast-title{color:var(--text-success);}
+.toast-msg{font-size:12px;color:var(--text-secondary);line-height:1.5;}
+.toast-close{background:none;border:none;cursor:pointer;font-size:15px;color:var(--text-tertiary);padding:0;line-height:1;}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border-tertiary);border-top-color:var(--text-info);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.status-bar{font-size:12px;color:var(--text-secondary);margin-bottom:10px;min-height:20px;}
+.share-box{background:var(--bg-secondary);border-radius:var(--radius-md);padding:12px 14px;margin-top:16px;}
+.share-box label{font-size:12px;color:var(--text-secondary);margin-bottom:6px;}
+.share-url{font-size:12px;font-family:monospace;word-break:break-all;color:var(--text-info);background:var(--bg-primary);border:0.5px solid var(--border-tertiary);border-radius:6px;padding:8px 10px;margin-top:4px;}
+.gen-info{font-size:12px;color:var(--text-info);background:var(--bg-info);border:0.5px solid var(--border-info);border-radius:var(--radius-md);padding:8px 12px;margin-bottom:10px;display:none;}
+@media(max-width:600px){.metrics{grid-template-columns:1fr 1fr;}.top-params{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div class="toast-wrap">
+  <div class="toast hidden" id="toast">
+    <span class="toast-icon" id="toast-icon">⊘</span>
+    <div class="toast-body">
+      <div class="toast-title" id="toast-title">Error</div>
+      <div class="toast-msg" id="toast-msg"></div>
+    </div>
+    <button class="toast-close" onclick="hideToast()">✕</button>
+  </div>
+</div>
+
+<!-- Clear confirm -->
+<div class="overlay hidden" id="clear-overlay">
+  <div class="dialog">
+    <div class="dialog-title">Clear all bids?</div>
+    <div class="dialog-msg">This will erase all bid quantities for all bidders in this session. Price bands and bidder names are kept. This cannot be undone.</div>
+    <div class="dialog-actions">
+      <button onclick="document.getElementById('clear-overlay').classList.add('hidden')">Cancel</button>
+      <button class="btn-danger" onclick="confirmClear()">Yes, clear all</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ROLE PICKER ── -->
+<div id="role-screen">
+  <div class="role-card">
+    <h2>Book Building — Fly Ash Calculator</h2>
+    <p>Select your role to continue. The auctioneer sets up sessions and sees all bids. Bidders enter their own quantities only.</p>
+
+    <div id="role-pick">
+      <div class="role-btn" onclick="showRoleForm('auctioneer')">
+        <div class="role-icon" style="background:var(--bg-info);color:var(--text-info);">🏛</div>
+        <div class="role-info"><h3>Auctioneer</h3><p>Create & manage sessions, see all bids live</p></div>
+      </div>
+      <div class="role-btn" onclick="showRoleForm('bidder')">
+        <div class="role-icon" style="background:var(--bg-success);color:var(--text-success);">📋</div>
+        <div class="role-info"><h3>Bidder</h3><p>Join a session and enter your bids</p></div>
+      </div>
+    </div>
+
+    <div id="form-auctioneer" class="hidden">
+      <div style="border-top:0.5px solid var(--border-tertiary);padding-top:18px;margin-top:4px;">
+        <div class="field-row"><label>Your name / organisation</label><input type="text" id="a-name" placeholder="e.g. Coal India Ltd"></div>
+        <div class="field-row"><label>Session name</label><input type="text" id="a-session" placeholder="e.g. FlyAsh-Jun2026"></div>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button onclick="showRoleForm(null)" style="flex:1;">← Back</button>
+          <button class="btn-primary" onclick="createSession()" style="flex:2;">Create session</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="form-bidder" class="hidden">
+      <div style="border-top:0.5px solid var(--border-tertiary);padding-top:18px;margin-top:4px;">
+        <div class="field-row"><label>Session ID (given by auctioneer)</label><input type="text" id="b-session" placeholder="e.g. FlyAsh-Jun2026"></div>
+        <div class="field-row"><label>Your bidder name</label><input type="text" id="b-name" placeholder="e.g. B1 or Tata Power"></div>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button onclick="showRoleForm(null)" style="flex:1;">← Back</button>
+          <button class="btn-primary" onclick="joinSession()" style="flex:2;">Join session</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── MAIN APP ── -->
+<div id="app-screen" class="hidden">
+<div class="page">
+
+<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+  <div>
+    <h1>Book Building — Fly Ash Calculator</h1>
+    <p class="subtitle" id="app-subtitle"></p>
+  </div>
+  <button onclick="leaveSession()" style="font-size:12px;margin-top:4px;">✕ Leave session</button>
+</div>
+
+<div class="session-bar">
+  <div class="dot-live"></div>
+  <span>Session: <strong id="bar-session"></strong></span>
+  <span class="sid" id="bar-role"></span>
+  <span style="margin-left:auto;font-size:12px;color:var(--text-tertiary);" id="bar-sync"></span>
+  <button onclick="fetchBids()" style="font-size:11px;padding:4px 10px;">↻ Refresh</button>
+</div>
+
+<!-- auctioneer share box -->
+<div class="share-box hidden" id="share-box">
+  <label>Share this link with each bidder (they open it in their browser):</label>
+  <div class="share-url" id="share-url"></div>
+  <button onclick="copyShareLink()" style="font-size:12px;margin-top:8px;">Copy link</button>
+</div>
+
+<div class="top-params">
+  <div class="param-card">
+    <label>Offer Quantity (OQ)</label>
+    <input type="number" id="oq" value="900" min="1" oninput="softRender()" id="oq">
+  </div>
+  <div class="param-card">
+    <label>Cut-off ratio (CQ %)</label>
+    <input type="number" id="cq" value="90" min="1" max="100" step="1" oninput="softRender()">
+  </div>
+</div>
+
+<div class="sec">Bids by price band</div>
+<p class="hint" id="grid-hint"></p>
+<div class="legend">
+  <span><span class="ldot" style="background:var(--bg-secondary);border:0.5px solid var(--border-secondary);"></span>Deemed — own entry</span>
+  <span><span class="ldot" style="background:var(--bg-warning);border:0.5px solid var(--border-warning);"></span>Deemed — cascaded</span>
+  <span><span class="ldot" style="background:rgba(56,138,221,0.06);border:0.5px solid var(--border-info);"></span>Your column</span>
+</div>
+
+<div class="toolbar" id="toolbar-auctioneer">
+  <button onclick="addPriceRow()">＋ Price band</button>
+  <button onclick="addBidder()">＋ Bidder</button>
+  <div class="toolbar-sep"></div>
+  <button class="btn-magic" onclick="generateRandomBids()">⚙ Random bids</button>
+  <button class="btn-danger" onclick="document.getElementById('clear-overlay').classList.remove('hidden')">⊘ Clear all</button>
+  <div class="toolbar-sep"></div>
+  <button class="btn-success" onclick="pushSession()">↑ Push to all bidders</button>
+</div>
+
+<div class="gen-info" id="gen-info"></div>
+<div class="status-bar" id="status-bar"></div>
+
+<div class="grid-wrap">
+  <table class="bg" id="bid-grid"></table>
+</div>
+
+<div id="alert-area"></div>
+
+<hr class="divider">
+<div class="sec" style="margin-top:1rem;">Results</div>
+<div class="metrics">
+  <div class="metric"><div class="metric-lbl">Final selected price</div><div class="metric-val" id="s-price">—</div><div class="metric-sub">optimal band</div></div>
+  <div class="metric"><div class="metric-lbl">Maximum revenue</div><div class="metric-val" id="s-rev">—</div><div class="metric-sub">at final price</div></div>
+  <div class="metric"><div class="metric-lbl">Total qty subscribed</div><div class="metric-val" id="s-qty">—</div><div class="metric-sub">OQ = <span id="s-oq">900</span></div></div>
+  <div class="metric"><div class="metric-lbl">Subscription ratio</div><div class="metric-val" id="s-ratio">—</div><div class="metric-sub">vs offer qty</div></div>
+</div>
+<table class="res">
+  <thead><tr><th style="text-align:left;">Price</th><th>Total deemed qty</th><th>% of OQ</th><th>Revenue (₹)</th><th>Status</th><th>Rank</th></tr></thead>
+  <tbody id="res-body"></tbody>
+</table>
+
+<div class="sec" style="margin-top:1.5rem;">Per-bidder allocation at final price</div>
+<p class="hint">Deemed qty per bidder at final price, scaled proportionally if total exceeds OQ.</p>
+<div id="alloc-area"><p style="font-size:13px;color:var(--text-tertiary);">No valid price band yet.</p></div>
+
+</div>
+</div>
+
+<script>
+const SUPABASE_URL='https://yidbqnvhakorbvykbycw.supabase.co';
+const SUPABASE_KEY='sb_publishable_zNY6TkmZB3T58DbRIF54HQ_qUA6tS2u';
+const HEADERS={'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
+
+let role=null;         // 'auctioneer' | 'bidder'
+let sessionId=null;
+let myBidderName=null;
+let bidders=[];
+let rows=[];
+let pollTimer=null;
+
+/* ── URL param helpers (bidder deep-link) ── */
+function getUrlParams(){
+  const p=new URLSearchParams(window.location.search);
+  return{session:p.get('session'),bidder:p.get('bidder')};
+}
+
+/* ── Toast ── */
+let toastTimer=null;
+function showToast(type,title,msg){
+  clearTimeout(toastTimer);
+  const el=document.getElementById('toast');
+  el.className='toast '+({'err':'','info':'info-toast','ok':'success-toast'}[type]||'');
+  document.getElementById('toast-icon').textContent={'err':'⊘','info':'ℹ','ok':'✓'}[type]||'ℹ';
+  el.querySelector('.toast-icon').className='toast-icon toast-'+{'err':'err','info':'info','ok':'ok'}[type];
+  document.getElementById('toast-title').textContent=title;
+  document.getElementById('toast-msg').textContent=msg;
+  el.classList.remove('hidden');
+  toastTimer=setTimeout(hideToast,4500);
+}
+function hideToast(){document.getElementById('toast').classList.add('hidden');}
+
+/* ── Status bar ── */
+function setStatus(msg){document.getElementById('status-bar').innerHTML=msg;}
+
+/* ── Role form ── */
+function showRoleForm(r){
+  document.getElementById('form-auctioneer').classList.add('hidden');
+  document.getElementById('form-bidder').classList.add('hidden');
+  document.getElementById('role-pick').classList.toggle('hidden',!!r);
+  if(r)document.getElementById('form-'+r).classList.remove('hidden');
+}
+
+/* ── Supabase REST helpers ── */
+async function sbGet(table,filters=''){
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}`,{headers:{...HEADERS,'Prefer':'return=representation'}});
+  if(!r.ok)throw new Error(await r.text());
+  return r.json();
+}
+async function sbUpsert(table,body){
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{method:'POST',headers:{...HEADERS,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error(await r.text());
+  return r.json();
+}
+async function sbDelete(table,filters){
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}`,{method:'DELETE',headers:HEADERS});
+  if(!r.ok)throw new Error(await r.text());
+}
+
+/* ── Create session (auctioneer) ── */
+async function createSession(){
+  const name=document.getElementById('a-name').value.trim();
+  const sid=document.getElementById('a-session').value.trim();
+  if(!name||!sid){showToast('err','Missing info','Please fill in both fields.');return;}
+  setStatus('<span class="spinner"></span>Creating session…');
+  try{
+    await sbUpsert('sessions',{id:sid,offer_quantity:900,cutoff_pct:90,price_bands:[250,260,270,280,290,300],bidder_names:['B1','B2','B3']});
+    sessionId=sid; role='auctioneer'; myBidderName=name;
+    initApp();
+  }catch(e){showToast('err','Could not create session',e.message);setStatus('');}
+}
+
+/* ── Join session (bidder) ── */
+async function joinSession(){
+  const sid=document.getElementById('b-session').value.trim();
+  const bname=document.getElementById('b-name').value.trim();
+  if(!sid||!bname){showToast('err','Missing info','Please fill in both fields.');return;}
+  setStatus('<span class="spinner"></span>Joining session…');
+  try{
+    const data=await sbGet('sessions',`id=eq.${encodeURIComponent(sid)}&select=*`);
+    if(!data.length){showToast('err','Session not found','Check the session ID with the auctioneer.');setStatus('');return;}
+    sessionId=sid; role='bidder'; myBidderName=bname;
+    initApp();
+  }catch(e){showToast('err','Could not join',e.message);setStatus('');}
+}
+
+/* ── Init app after role chosen ── */
+function initApp(){
+  document.getElementById('role-screen').classList.add('hidden');
+  document.getElementById('app-screen').classList.remove('hidden');
+  document.getElementById('bar-session').textContent=sessionId;
+  document.getElementById('bar-role').textContent=role==='auctioneer'?'Auctioneer — '+myBidderName:'Bidder — '+myBidderName;
+  document.getElementById('app-subtitle').textContent=role==='auctioneer'?'Managing session as auctioneer. Push structure to share with bidders.':'Bidder view — enter your quantities. Other columns are read-only.';
+  document.getElementById('grid-hint').textContent=role==='auctioneer'?'Auctioneer view — all bid columns are editable.':'Enter bids in your column only (highlighted). Other bidders\' columns are locked.';
+  if(role==='auctioneer'){
+    document.getElementById('toolbar-auctioneer').classList.remove('hidden');
+    document.getElementById('share-box').classList.remove('hidden');
+    const shareUrl=window.location.href.split('?')[0]+'?session='+encodeURIComponent(sessionId);
+    document.getElementById('share-url').textContent=shareUrl;
+  } else {
+    document.getElementById('toolbar-auctioneer').classList.add('hidden');
+    document.getElementById('share-box').classList.add('hidden');
+  }
+  fetchSession();
+  pollTimer=setInterval(fetchBids,8000);
+}
+
+function copyShareLink(){
+  const url=document.getElementById('share-url').textContent;
+  navigator.clipboard.writeText(url).then(()=>showToast('ok','Copied','Share link copied to clipboard.'));
+}
+
+/* ── Fetch session structure ── */
+async function fetchSession(){
+  setStatus('<span class="spinner"></span>Loading session…');
+  try{
+    const data=await sbGet('sessions',`id=eq.${encodeURIComponent(sessionId)}&select=*`);
+    if(!data.length){showToast('err','Session gone','This session no longer exists.');return;}
+    const s=data[0];
+    document.getElementById('oq').value=s.offer_quantity;
+    document.getElementById('cq').value=s.cutoff_pct;
+    bidders=s.bidder_names||['B1'];
+    const prices=s.price_bands||[250,260,270,280,290,300];
+    rows=prices.map(p=>({price:p,actual:bidders.map(()=>null)}));
+    await fetchBids();
+  }catch(e){showToast('err','Load error',e.message);setStatus('');}
+}
+
+/* ── Fetch bids from DB ── */
+async function fetchBids(){
+  document.getElementById('bar-sync').textContent='Syncing…';
+  try{
+    const data=await sbGet('bids',`session_id=eq.${encodeURIComponent(sessionId)}&select=*`);
+    data.forEach(b=>{
+      const ri=rows.findIndex(r=>r.price===b.price);
+      const bi=bidders.indexOf(b.bidder_name);
+      if(ri>=0&&bi>=0)rows[ri].actual[bi]=b.quantity>0?b.quantity:null;
+    });
+    buildGrid();
+    const t=new Date().toLocaleTimeString();
+    document.getElementById('bar-sync').textContent='Last sync: '+t;
+    setStatus('');
+  }catch(e){document.getElementById('bar-sync').textContent='Sync failed';}
+}
+
+/* ── Push session structure (auctioneer) ── */
+async function pushSession(){
+  setStatus('<span class="spinner"></span>Pushing session structure…');
+  try{
+    await sbUpsert('sessions',{id:sessionId,offer_quantity:+document.getElementById('oq').value||900,cutoff_pct:+document.getElementById('cq').value||90,price_bands:rows.map(r=>r.price),bidder_names:[...bidders]});
+    showToast('ok','Pushed','Session structure saved. Bidders will see it on next refresh.');
+    setStatus('');
+  }catch(e){showToast('err','Push failed',e.message);setStatus('');}
+}
+
+/* ── Save a single bid cell to DB ── */
+async function saveBid(price,bidderName,qty){
+  try{
+    if(qty===null||qty===0){
+      await sbDelete('bids',`session_id=eq.${encodeURIComponent(sessionId)}&bidder_name=eq.${encodeURIComponent(bidderName)}&price=eq.${price}`);
+    } else {
+      await sbUpsert('bids',[{session_id:sessionId,bidder_name:bidderName,price,quantity:qty}]);
+    }
+    document.getElementById('bar-sync').textContent='Saved at '+new Date().toLocaleTimeString();
+  }catch(e){showToast('err','Save failed',e.message);}
+}
+
+/* ── Leave session ── */
+function leaveSession(){
+  clearInterval(pollTimer);
+  role=null;sessionId=null;myBidderName=null;bidders=[];rows=[];
+  document.getElementById('app-screen').classList.add('hidden');
+  document.getElementById('role-screen').classList.remove('hidden');
+  showRoleForm(null);
+}
+
+/* ── Structure mutations (auctioneer only) ── */
+function addBidder(){bidders.push('B'+(bidders.length+1));rows.forEach(r=>r.actual.push(null));buildGrid();}
+function removeBidder(bi){if(bidders.length<=1)return;bidders.splice(bi,1);rows.forEach(r=>r.actual.splice(bi,1));buildGrid();}
+function addPriceRow(){const last=rows.length?rows[rows.length-1].price:250;rows.push({price:last+10,actual:bidders.map(()=>null)});buildGrid();}
+function removePriceRow(i){if(rows.length<=1)return;rows.splice(i,1);buildGrid();}
+function getSorted(){return[...rows].sort((a,b)=>a.price-b.price);}
+
+/* ── Clear ── */
+async function confirmClear(){
+  document.getElementById('clear-overlay').classList.add('hidden');
+  rows.forEach(r=>{r.actual=bidders.map(()=>null);});
+  document.getElementById('gen-info').style.display='none';
+  setStatus('<span class="spinner"></span>Clearing bids…');
+  try{
+    await sbDelete('bids',`session_id=eq.${encodeURIComponent(sessionId)}`);
+    showToast('ok','Cleared','All bids have been removed.');
+    buildGrid();
+    setStatus('');
+  }catch(e){showToast('err','Clear failed',e.message);setStatus('');}
+}
+
+/* ── Random bid generator ── */
+function generateRandomBids(){
+  const oq=+document.getElementById('oq').value||900;
+  const sorted=getSorted();
+  const minQty=Math.max(5,Math.round(oq*0.05/5)*5);
+  let stats={bidders:0,cells:0};
+  rows.forEach(r=>{r.actual=bidders.map(()=>null);});
+  bidders.forEach((_,bi)=>{
+    if(Math.random()>0.82)return;
+    stats.bidders++;
+    const maxEntry=Math.max(0,Math.floor(sorted.length*0.65)-1);
+    const entryIdx=Math.floor(Math.random()*(maxEntry+1));
+    let qty=Math.round((0.15+Math.random()*0.40)*oq/5)*5;
+    qty=Math.min(qty,oq);
+    sorted.forEach((row,ri)=>{
+      const oi=rows.indexOf(row);
+      if(ri<entryIdx||qty<minQty){rows[oi].actual[bi]=null;return;}
+      rows[oi].actual[bi]=qty; stats.cells++;
+      if(Math.random()<0.65)qty=Math.round(qty*(1-(0.10+Math.random()*0.30))/5)*5;
+      if(Math.random()<0.15)qty=0;
+    });
+  });
+  const info=document.getElementById('gen-info');
+  info.style.display='block';
+  info.textContent=`Random bids generated — ${stats.bidders}/${bidders.length} bidders participated, ${stats.cells} cells filled.`;
+  buildGrid();
+}
+
+/* ── Deemed cascade ── */
+function computeDeemed(sorted){
+  return sorted.map((row,ri)=>
+    bidders.map((_,bi)=>{
+      const a=row.actual[bi];
+      if(a!==null&&a!==undefined&&+a>0)return{val:+a,cascaded:false};
+      for(let r=ri+1;r<sorted.length;r++){
+        const na=sorted[r].actual[bi];
+        if(na!==null&&na!==undefined&&+na>0)return{val:+na,cascaded:true};
+      }
+      return{val:0,cascaded:false};
+    })
+  );
+}
+function detectWarnings(sorted){
+  const w=[];
+  bidders.forEach((bn,bi)=>{
+    let last=null,lp=null;
+    sorted.forEach(row=>{
+      const a=row.actual[bi];
+      if(a===null||a===undefined)return;
+      const v=+a;
+      if(v>0){if(last!==null&&v>last)w.push({bidder:bn,fromPrice:lp,toPrice:row.price,fromQty:last,toQty:v});last=v;lp=row.price;}
+    });
+  });
+  return w;
+}
+function buildWarnSet(sorted){
+  const s=new Set();
+  bidders.forEach((_,bi)=>{
+    let last=null;
+    sorted.forEach(row=>{
+      const a=row.actual[bi];
+      if(a===null||a===undefined)return;
+      const v=+a;
+      if(v>0){if(last!==null&&v>last)s.add(`${row.price}-${bi}`);last=v;}
+    });
+  });
+  return s;
+}
+
+/* ── Build grid ── */
+function buildGrid(){
+  const sorted=getSorted();
+  const deemedAll=computeDeemed(sorted);
+  const warnSet=buildWarnSet(sorted);
+  const isAuctioneer=role==='auctioneer';
+  const myBi=bidders.indexOf(myBidderName);
+  const tbl=document.getElementById('bid-grid');
+
+  let html='<thead><tr><th class="p-th" rowspan="2">Price (₹)</th>';
+  bidders.forEach((b,bi)=>{
+    const mine=(!isAuctioneer&&bi===myBi);
+    html+=`<th colspan="2" class="g-th${mine?' col-mine':''}"><div class="b-hdr">`;
+    if(isAuctioneer)html+=`<input class="b-name-in" value="${b}" title="Click to rename" onchange="bidders[${bi}]=this.value||'B'+(${bi}+1);softRender()">`;
+    else html+=`<span style="font-size:11px;font-weight:500;">${b}${mine?' ★':''}</span>`;
+    if(isAuctioneer)html+=`<button class="b-rm" onclick="removeBidder(${bi})" title="Remove">✕</button>`;
+    html+='</div></th>';
+  });
+  html+='<th rowspan="2" style="width:26px;"></th></tr><tr>';
+  bidders.forEach((b,bi)=>{
+    const mine=(!isAuctioneer&&bi===myBi);
+    html+=`<th${mine?' class="col-mine"':''}>Actual</th><th${mine?' class="col-mine"':''}>Deemed</th>`;
+  });
+  html+='</tr></thead><tbody>';
+
+  sorted.forEach((row,ri)=>{
+    const oi=rows.indexOf(row);
+    html+=`<tr><td class="pc"><input class="price-in" type="number" value="${row.price}" ${isAuctioneer?`onchange="rows[${oi}].price=+this.value;buildGrid()"`:' disabled'}></td>`;
+    bidders.forEach((_,bi)=>{
+      const av=row.actual[bi];
+      const ad=(av===null||av===undefined)?'':String(av);
+      const d=deemedAll[ri][bi];
+      const dd=d.val>0?d.val:'—';
+      const isWarn=warnSet.has(`${row.price}-${bi}`);
+      const mine=isAuctioneer||(bi===myBi);
+      const ic=(isWarn?'actual w-warn':'actual')+((!isAuctioneer&&bi===myBi)?' col-mine':'');
+      const dc=d.cascaded?'deemed casc':'deemed';
+      const colcls=(!isAuctioneer&&bi===myBi)?' class="col-mine"':'';
+      if(mine){
+        html+=`<td${colcls}><input class="${ic}" type="number" value="${ad}" placeholder="—" data-ri="${oi}" data-bi="${bi}" onblur="commitActual(this,${oi},${bi})" onkeydown="if(event.key==='Enter'||event.key==='Tab'){commitActual(this,${oi},${bi})}"></td>`;
+      } else {
+        html+=`<td><input class="actual" type="number" value="${ad}" placeholder="—" disabled></td>`;
+      }
+      html+=`<td class="${dc}"${colcls} id="d-${oi}-${bi}">${dd}</td>`;
+    });
+    const rmBtn=isAuctioneer?`<button class="rm-btn" onclick="removePriceRow(${oi})" title="Remove row">✕</button>`:'';
+    html+=`<td>${rmBtn}</td></tr>`;
+  });
+  html+='</tbody>';
+  tbl.innerHTML=html;
+  softRender();
+}
+
+/* ── Commit bid with OQ guard + DB save ── */
+function commitActual(input,oi,bi){
+  const oq=+document.getElementById('oq').value||900;
+  const raw=input.value;
+  const bidderName=bidders[bi];
+  const price=rows[oi].price;
+  if(raw===''||raw===null){
+    rows[oi].actual[bi]=null;
+    saveBid(price,bidderName,null);
+    updateDeemed();softRender();return;
+  }
+  const v=+raw;
+  if(v>oq){
+    showToast('err','Bid exceeds OQ',`${bidderName} cannot bid more than ${oq.toLocaleString('en-IN')} units. Please enter ${oq.toLocaleString('en-IN')} or less.`);
+    input.value=rows[oi].actual[bi]===null?'':rows[oi].actual[bi];
+    input.focus();return;
+  }
+  rows[oi].actual[bi]=v>0?v:null;
+  saveBid(price,bidderName,v>0?v:null);
+  updateDeemed();softRender();
+}
+
+function updateDeemed(){
+  const sorted=getSorted();
+  const deemedAll=computeDeemed(sorted);
+  const warnSet=buildWarnSet(sorted);
+  const myBi=bidders.indexOf(myBidderName);
+  sorted.forEach((row,ri)=>{
+    const oi=rows.indexOf(row);
+    bidders.forEach((_,bi)=>{
+      const cell=document.getElementById(`d-${oi}-${bi}`);
+      if(!cell)return;
+      const d=deemedAll[ri][bi];
+      cell.textContent=d.val>0?d.val:'—';
+      cell.className=(d.cascaded?'deemed casc':'deemed')+(role!=='auctioneer'&&bi===myBi?' col-mine':'');
+      const inp=document.querySelector(`input[data-ri="${oi}"][data-bi="${bi}"]`);
+      if(inp){const iw=warnSet.has(`${row.price}-${bi}`);inp.className=(iw?'actual w-warn':'actual')+(role!=='auctioneer'&&bi===myBi?' col-mine':'');}
+    });
+  });
+}
+
+function softRender(){
+  const sorted=getSorted();
+  const deemedAll=computeDeemed(sorted);
+  const warnItems=detectWarnings(sorted);
+  let alertHtml='';
+  if(warnItems.length){
+    const li=warnItems.map(w=>`<li><strong>${w.bidder}</strong>: qty rises from <strong>${w.fromQty}</strong> at ₹${w.fromPrice} to <strong>${w.toQty}</strong> at ₹${w.toPrice}.</li>`).join('');
+    alertHtml=`<div class="abox warn"><div class="at">⚠ Bid pattern caution — ${warnItems.length} issue${warnItems.length>1?'s':''}</div><ul>${li}</ul></div>`;
+  }
+  document.getElementById('alert-area').innerHTML=alertHtml;
+  calcResults(sorted,deemedAll);
+}
+
+function calcResults(sorted,deemedAll){
+  const oq=+document.getElementById('oq').value||900;
+  const cqRatio=(+document.getElementById('cq').value||90)/100;
+  document.getElementById('s-oq').textContent=oq.toLocaleString('en-IN');
+  const computed=sorted.map((row,ri)=>{
+    const dqs=deemedAll[ri].map(d=>d.val);
+    const totalQty=dqs.reduce((s,v)=>s+v,0);
+    const pctOQ=totalQty/oq;
+    const revenue=row.price*Math.min(totalQty,oq);
+    const isSelected=pctOQ>=cqRatio;
+    return{price:row.price,totalQty,pctOQ,revenue,isSelected,dqs,score:isSelected?revenue:0};
+  });
+  const maxScore=Math.max(...computed.map(r=>r.score));
+  computed.forEach(r=>{r.isFinal=r.isSelected&&r.score===maxScore&&maxScore>0;});
+  const selRevs=computed.filter(r=>r.isSelected).map(r=>r.revenue).sort((a,b)=>b-a);
+  computed.forEach(r=>{r.rank=r.isSelected?(selRevs.indexOf(r.revenue)+1):null;});
+  const fin=computed.find(r=>r.isFinal);
+  document.getElementById('s-price').textContent=fin?'₹'+fin.price:'—';
+  document.getElementById('s-rev').textContent=fin?'₹'+fin.revenue.toLocaleString('en-IN'):'—';
+  document.getElementById('s-qty').textContent=fin?fin.totalQty.toLocaleString('en-IN'):'—';
+  document.getElementById('s-ratio').textContent=fin?((fin.pctOQ*100).toFixed(1)+'%'):'—';
+  const rb=document.getElementById('res-body');
+  rb.innerHTML='';
+  computed.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.className=r.isFinal?'r-fin':r.isSelected?'r-sel':'r-out';
+    const status=r.isFinal?'<span class="badge b-fin">Final selection</span>':r.isSelected?'<span class="badge b-sel">Selected band</span>':'<span style="color:var(--text-tertiary)">—</span>';
+    tr.innerHTML=`<td>₹${r.price}</td><td>${r.totalQty.toLocaleString('en-IN')}</td><td>${(r.pctOQ*100).toFixed(1)}%</td><td>${r.isSelected?'₹'+r.revenue.toLocaleString('en-IN'):'—'}</td><td>${status}</td><td>${r.rank?'#'+r.rank:'—'}</td>`;
+    rb.appendChild(tr);
+  });
+  const ad=document.getElementById('alloc-area');
+  if(!fin){ad.innerHTML='<p style="font-size:13px;color:var(--text-tertiary);">No valid price band found.</p>';return;}
+  const totalDq=fin.dqs.reduce((s,v)=>s+v,0);
+  const cap=totalDq>oq?oq/totalDq:1;
+  let ahtml='<div class="alloc-grid">';
+  bidders.forEach((b,bi)=>{
+    const raw=fin.dqs[bi];
+    const alloc=Math.round(raw*cap);
+    const pct=totalDq>0?((raw/totalDq)*100).toFixed(1):'0.0';
+    const barW=Math.round((raw/Math.max(totalDq,1))*100);
+    ahtml+=`<div class="alloc-row"><span class="alloc-name">${b}</span><div class="alloc-bar-wrap"><div class="alloc-bar" style="width:${barW}%"></div></div><span class="alloc-qty">${alloc.toLocaleString('en-IN')} units</span><span class="alloc-pct">${pct}%</span></div>`;
+  });
+  ahtml+='</div>';
+  if(totalDq>oq)ahtml+=`<p style="font-size:11px;color:var(--text-secondary);margin-top:8px;">ⓘ Total exceeds OQ — allocations scaled down proportionally.</p>`;
+  ad.innerHTML=ahtml;
+}
+
+/* ── Auto-join from URL params ── */
+(function(){
+  const{session,bidder}=getUrlParams();
+  if(session&&bidder){
+    document.getElementById('b-session').value=session;
+    document.getElementById('b-name').value=bidder;
+    role='bidder'; sessionId=session; myBidderName=bidder;
+    initApp();
+  }
+})();
+</script>
+</body>
+</html>
