@@ -219,7 +219,7 @@ tr.r-out td{color:var(--text-tertiary);}
     <div id="form-bidder" class="hidden">
       <div style="border-top:0.5px solid var(--border-tertiary);padding-top:18px;margin-top:4px;">
         <div class="field-row"><label>Session ID (given by auctioneer)</label><input type="text" id="b-session" placeholder="e.g. FlyAsh-Jun2026"></div>
-        <div class="field-row"><label>Your bidder name</label><input type="text" id="b-name" placeholder="e.g. B1 or Tata Power"></div>
+        <div class="field-row"><label>Your name or company name</label><input type="text" id="b-name" placeholder="e.g. Tata Power or your assigned code"></div>
         <div style="display:flex;gap:10px;margin-top:6px;">
           <button onclick="showRoleForm(null)" style="flex:1;">← Back</button>
           <button class="btn-primary" onclick="joinSession()" style="flex:2;">Join session</button>
@@ -233,7 +233,7 @@ tr.r-out td{color:var(--text-tertiary);}
         <div style="background:var(--bg-success);border-radius:var(--radius-md);padding:8px 12px;margin-bottom:14px;font-size:12px;color:var(--text-success);">
           ✓ Session: <strong id="detected-session"></strong>
         </div>
-        <div class="field-row"><label>Enter your bidder name (as assigned by the auctioneer)</label><input type="text" id="n-name" placeholder="e.g. B1 or Tata Power"></div>
+        <div class="field-row"><label>Enter your name or company name</label><input type="text" id="n-name" placeholder="e.g. Tata Power or your assigned code"></div>
         <div style="margin-top:8px;">
           <button class="btn-primary" onclick="joinViaLink()" style="width:100%;">Enter as Bidder →</button>
         </div>
@@ -273,7 +273,7 @@ tr.r-out td{color:var(--text-tertiary);}
 <div class="top-params">
   <div class="param-card">
     <label>Offer Quantity (OQ)</label>
-    <input type="number" id="oq" value="900" min="1" oninput="softRender()" id="oq">
+    <input type="number" id="oq" value="900" min="1" oninput="softRender()">
   </div>
   <div class="param-card">
     <label>Cut-off ratio (CQ %)</label>
@@ -434,6 +434,13 @@ function initApp(){
     document.getElementById('toolbar-auctioneer').classList.add('hidden');
     document.getElementById('share-box').classList.add('hidden');
   }
+  if(role==='bidder'){
+    document.getElementById('oq').disabled=true;
+    document.getElementById('cq').disabled=true;
+  } else {
+    document.getElementById('oq').disabled=false;
+    document.getElementById('cq').disabled=false;
+  }
   fetchSession();
   pollTimer=setInterval(fetchBids,8000);
 }
@@ -455,15 +462,17 @@ async function fetchSession(){
     bidders=s.bidder_names||['B1'];
     const prices=s.price_bands||[250,260,270,280,290,300];
     rows=prices.map(p=>({price:p,actual:bidders.map(()=>null)}));
-    // For bidders: do case-insensitive name match and warn if not found
+    // For bidders: add their name to the bidder list if not already present
+    // Any name is accepted — auctioneer does not need to pre-register bidders
     if(role==='bidder'){
-      const exactMatch=bidders.includes(myBidderName);
       const lowerMatch=bidders.find(b=>b.toLowerCase()===myBidderName.toLowerCase());
-      if(!exactMatch&&lowerMatch){
-        myBidderName=lowerMatch; // fix case automatically
-      } else if(!exactMatch&&!lowerMatch){
-        showToast('err','Name not recognised',
-          'Your name "'+myBidderName+'" is not in this session. Available bidders: '+bidders.join(', ')+'. Please leave and re-enter with the exact name.');
+      if(lowerMatch){
+        myBidderName=lowerMatch; // normalise case to match existing column
+      } else {
+        // New bidder — add them to the list and save updated session
+        bidders.push(myBidderName);
+        rows.forEach(r=>r.actual.push(null));
+        await sbUpsert('sessions',{id:sessionId,offer_quantity:+document.getElementById('oq').value||900,cutoff_pct:+document.getElementById('cq').value||90,price_bands:rows.map(r=>r.price),bidder_names:[...bidders]});
       }
     }
     await fetchBids();
@@ -642,8 +651,8 @@ function buildGrid(){
       const d=deemedAll[ri][bi];
       const dd=d.val>0?d.val:'—';
       const isWarn=warnSet.has(`${row.price}-${bi}`);
-      const mine=(!isAuctioneer&&bi===myBi);
-      const ic=(isWarn?'actual w-warn':'actual')+((!isAuctioneer&&bi===myBi)?' col-mine':'');
+      const mine=(role==='bidder'&&bi===myBi);
+      const ic=(isWarn?'actual w-warn':'actual')+((role==='bidder'&&bi===myBi)?' col-mine':'');
       const dc=d.cascaded?'deemed casc':'deemed';
       const colcls=(!isAuctioneer&&bi===myBi)?' class="col-mine"':'';
       if(mine){
