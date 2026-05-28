@@ -192,7 +192,7 @@ tr.r-out td{color:var(--text-tertiary);}
 <div id="role-screen">
   <div class="role-card">
     <h2>Book Building — Fly Ash Calculator</h2>
-    <p>Select your role to continue. The auctioneer sets up sessions and sees all bids. Bidders enter their own quantities only.</p>
+    <p id="role-subtitle">Select your role to continue. The auctioneer sets up sessions and sees all bids. Bidders enter their own quantities only.</p>
 
     <div id="role-pick">
       <div class="role-btn" onclick="showRoleForm('auctioneer')">
@@ -223,6 +223,19 @@ tr.r-out td{color:var(--text-tertiary);}
         <div style="display:flex;gap:10px;margin-top:6px;">
           <button onclick="showRoleForm(null)" style="flex:1;">← Back</button>
           <button class="btn-primary" onclick="joinSession()" style="flex:2;">Join session</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shown when opening via shared link — only asks for name -->
+    <div id="form-nameonly" class="hidden">
+      <div style="border-top:0.5px solid var(--border-tertiary);padding-top:18px;margin-top:4px;">
+        <div style="background:var(--bg-success);border-radius:var(--radius-md);padding:8px 12px;margin-bottom:14px;font-size:12px;color:var(--text-success);">
+          ✓ Session: <strong id="detected-session"></strong>
+        </div>
+        <div class="field-row"><label>Enter your bidder name (as assigned by the auctioneer)</label><input type="text" id="n-name" placeholder="e.g. B1 or Tata Power"></div>
+        <div style="margin-top:8px;">
+          <button class="btn-primary" onclick="joinViaLink()" style="width:100%;">Enter as Bidder →</button>
         </div>
       </div>
     </div>
@@ -355,6 +368,7 @@ function setStatus(msg){document.getElementById('status-bar').innerHTML=msg;}
 function showRoleForm(r){
   document.getElementById('form-auctioneer').classList.add('hidden');
   document.getElementById('form-bidder').classList.add('hidden');
+  document.getElementById('form-nameonly').classList.add('hidden');
   document.getElementById('role-pick').classList.toggle('hidden',!!r);
   if(r)document.getElementById('form-'+r).classList.remove('hidden');
 }
@@ -413,7 +427,8 @@ function initApp(){
   if(role==='auctioneer'){
     document.getElementById('toolbar-auctioneer').classList.remove('hidden');
     document.getElementById('share-box').classList.remove('hidden');
-    const shareUrl=window.location.href.split('?')[0]+'?session='+encodeURIComponent(sessionId);
+    const base=window.location.href.split('?')[0].replace(/\/+$/,'')+'/';
+    const shareUrl=base+'?session='+encodeURIComponent(sessionId);
     document.getElementById('share-url').textContent=shareUrl;
   } else {
     document.getElementById('toolbar-auctioneer').classList.add('hidden');
@@ -737,13 +752,28 @@ function calcResults(sorted,deemedAll){
 }
 
 /* ── Auto-join from URL params ── */
+function joinViaLink(){
+  const name=document.getElementById('n-name').value.trim();
+  if(!name){showToast('err','Name required','Please enter your bidder name.');return;}
+  role='bidder'; myBidderName=name;
+  initApp();
+}
+
 (function(){
   const{session,bidder}=getUrlParams();
-  if(session&&bidder){
-    document.getElementById('b-session').value=session;
-    document.getElementById('b-name').value=bidder;
-    role='bidder'; sessionId=session; myBidderName=bidder;
-    initApp();
+  if(session){
+    sessionId=session;
+    if(bidder){
+      // Both session and bidder in URL — jump straight in
+      role='bidder'; myBidderName=bidder;
+      initApp();
+    } else {
+      // Only session in URL — show name-only form, hide role picker
+      document.getElementById('role-pick').classList.add('hidden');
+      document.getElementById('role-subtitle').textContent='You have been invited to bid. Enter your name to continue.';
+      document.getElementById('detected-session').textContent=decodeURIComponent(session);
+      document.getElementById('form-nameonly').classList.remove('hidden');
+    }
   }
 })();
 </script>
