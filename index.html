@@ -442,7 +442,7 @@ function initApp(){
     document.getElementById('cq').disabled=false;
   }
   fetchSession();
-  pollTimer=setInterval(fetchBids,8000);
+  pollTimer=setInterval(fetchBids,5000);
 }
 
 function copyShareLink(){
@@ -483,6 +483,32 @@ async function fetchSession(){
 async function fetchBids(){
   document.getElementById('bar-sync').textContent='Syncing…';
   try{
+    // Always re-fetch session structure so new bidders appear on auctioneer screen
+    const sdata=await sbGet('sessions',`id=eq.${encodeURIComponent(sessionId)}&select=*`);
+    if(sdata.length){
+      const s=sdata[0];
+      const newBidders=s.bidder_names||[];
+      const newPrices=s.price_bands||[];
+      // Merge any new bidders into local state without losing existing bid data
+      newBidders.forEach(b=>{
+        if(!bidders.includes(b)){
+          bidders.push(b);
+          rows.forEach(r=>r.actual.push(null));
+        }
+      });
+      // Merge any new price bands
+      newPrices.forEach(p=>{
+        if(!rows.find(r=>r.price===p)){
+          rows.push({price:p,actual:bidders.map(()=>null)});
+        }
+      });
+      // Update OQ/CQ only for bidders (auctioneer controls their own)
+      if(role==='bidder'){
+        document.getElementById('oq').value=s.offer_quantity;
+        document.getElementById('cq').value=s.cutoff_pct;
+      }
+    }
+    // Now fetch all bids
     const data=await sbGet('bids',`session_id=eq.${encodeURIComponent(sessionId)}&select=*`);
     data.forEach(b=>{
       const ri=rows.findIndex(r=>r.price===b.price);
