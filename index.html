@@ -423,7 +423,7 @@ function initApp(){
   document.getElementById('bar-session').textContent=sessionId;
   document.getElementById('bar-role').textContent=role==='auctioneer'?'Auctioneer — '+myBidderName:'Bidder — '+myBidderName;
   document.getElementById('app-subtitle').textContent=role==='auctioneer'?'Managing session as auctioneer. Push structure to share with bidders.':'Bidder view — enter your quantities. Other columns are read-only.';
-  document.getElementById('grid-hint').textContent=role==='auctioneer'?'Auctioneer view — all bid columns are editable.':'Enter bids in your column only (highlighted). Other bidders\' columns are locked.';
+  document.getElementById('grid-hint').textContent=role==='auctioneer'?'Auctioneer view — use + buttons to manage structure, then Push to share.':'Enter bids in your highlighted column. Other columns are locked.';
   if(role==='auctioneer'){
     document.getElementById('toolbar-auctioneer').classList.remove('hidden');
     document.getElementById('share-box').classList.remove('hidden');
@@ -455,6 +455,17 @@ async function fetchSession(){
     bidders=s.bidder_names||['B1'];
     const prices=s.price_bands||[250,260,270,280,290,300];
     rows=prices.map(p=>({price:p,actual:bidders.map(()=>null)}));
+    // For bidders: do case-insensitive name match and warn if not found
+    if(role==='bidder'){
+      const exactMatch=bidders.includes(myBidderName);
+      const lowerMatch=bidders.find(b=>b.toLowerCase()===myBidderName.toLowerCase());
+      if(!exactMatch&&lowerMatch){
+        myBidderName=lowerMatch; // fix case automatically
+      } else if(!exactMatch&&!lowerMatch){
+        showToast('err','Name not recognised',
+          'Your name "'+myBidderName+'" is not in this session. Available bidders: '+bidders.join(', ')+'. Please leave and re-enter with the exact name.');
+      }
+    }
     await fetchBids();
   }catch(e){showToast('err','Load error',e.message);setStatus('');}
 }
@@ -631,7 +642,7 @@ function buildGrid(){
       const d=deemedAll[ri][bi];
       const dd=d.val>0?d.val:'—';
       const isWarn=warnSet.has(`${row.price}-${bi}`);
-      const mine=isAuctioneer||(bi===myBi);
+      const mine=(!isAuctioneer&&bi===myBi);
       const ic=(isWarn?'actual w-warn':'actual')+((!isAuctioneer&&bi===myBi)?' col-mine':'');
       const dc=d.cascaded?'deemed casc':'deemed';
       const colcls=(!isAuctioneer&&bi===myBi)?' class="col-mine"':'';
